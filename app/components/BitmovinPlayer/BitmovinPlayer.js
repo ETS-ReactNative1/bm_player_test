@@ -98,7 +98,7 @@ class BitmovinPlayer extends React.Component {
 
   destroyPlayer() {
     if (this.player !== null) {
-      // this.player.destroy();
+      this.player.destroy();
     }
   }
 
