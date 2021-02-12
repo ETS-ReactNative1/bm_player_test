@@ -32,6 +32,7 @@ import { changeUsername } from './actions';
 import { makeSelectUsername } from './selectors';
 import reducer from './reducer';
 import saga from './saga';
+import BitmovinPlayer from '../../components/BitmovinPlayer';
 
 const key = 'home';
 
@@ -56,6 +57,9 @@ export function HomePage({
     error,
     repos,
   };
+
+  const manifest =
+    'https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8';
 
   return (
     <article>
@@ -95,6 +99,9 @@ export function HomePage({
             </label>
           </Form>
           <ReposList {...reposListProps} />
+        </Section>
+        <Section>
+          <BitmovinPlayer manifest={manifest} />
         </Section>
       </div>
     </article>
