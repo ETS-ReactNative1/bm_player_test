@@ -65,7 +65,7 @@
   },
   "dependencies": {
     "@babel/polyfill": "7.4.3",
-    "bitmovin-player": "^8.53.0",
+    "bitmovin-player": "^8.56.0",
     "chalk": "2.4.2",
     "compression": "1.7.4",
     "connected-react-router": "6.4.0",

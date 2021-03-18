@@ -1,5 +1,5 @@
 import React from 'react';
-import { Player as Bitmovin, LogLevel } from 'bitmovin-player';
+import { Player as Bitmovin, LogLevel, PlayerEvent } from 'bitmovin-player';
 import BitmovinEngineModule from 'bitmovin-player/modules/bitmovinplayer-engine-bitmovin';
 import MSERendererModule from 'bitmovin-player/modules/bitmovinplayer-mserenderer';
 import HLSModule from 'bitmovin-player/modules/bitmovinplayer-hls';
@@ -17,31 +17,9 @@ import 'bitmovin-player/bitmovinplayer-ui.css';
 class BitmovinPlayer extends React.Component {
   player = null;
 
-  videoContainer = React.createRef();
+  playerConfig = {};
 
-  playerConfig = {
-    key: '456747b9-c7e7-4832-aa2c-40a45a5da235',
-    analytics: {
-      key: '7985f8f2-dea6-4db5-8f65-3af95e1840fd',
-      videoId: 'ad-scheduling',
-    },
-    ui: false,
-    logs: {
-      level: LogLevel.DEBUG,
-      advertising: {
-        schedule: {},
-      },
-    },
-    playback: {
-      muted: true,
-      autoplay: true,
-    },
-    remotecontrol: {
-      type: 'googlecast',
-      receiverApplicationId: '2D21C8BE',
-      receiverVersion: 'v3',
-    },
-  };
+  videoContainer = React.createRef();
 
   getVideoContainer() {
     return this.videoContainer.current;
@@ -58,6 +36,34 @@ class BitmovinPlayer extends React.Component {
   // }
 
   componentDidMount() {
+    this.playerConfig = {
+      key: '',
+      analytics: {
+        key: '7985f8f2-dea6-4db5-8f65-3af95e1840fd',
+        videoId: 'ad-scheduling',
+      },
+      ui: false,
+      logs: {
+        level: LogLevel.DEBUG,
+        advertising: {
+          schedule: {},
+        },
+      },
+      playback: {
+        muted: true,
+        autoplay: true,
+      },
+      events: {
+        [PlayerEvent.Play]: this.onPlay,
+        [PlayerEvent.SourceLoaded]: this.onSourceLoaded,
+      },
+      remotecontrol: {
+        type: 'googlecast',
+        receiverApplicationId: '2D21C8BE',
+        receiverVersion: 'v3',
+      },
+    };
+
     this.setupPlayer();
   }
 
@@ -86,15 +92,51 @@ class BitmovinPlayer extends React.Component {
       playbackSpeedSelectionEnabled: false,
       disableAutoHideWhenHovered: true,
     });
-    this.player.load({ hls: manifest }).then(
+    const { player } = this;
+    player.load({ hls: manifest }).then(
       () => {
         console.log('Successfully loaded source');
+        const playerCurrentAudio = player.getAudio();
+        const playerAudioOptions = player.getAvailableAudio();
+
+        console.log(
+          'playerCurrentAudio:',
+          playerCurrentAudio,
+          '\nplayerAudioOptions',
+          playerAudioOptions,
+        );
       },
       () => {
         console.log('Error while loading source');
       },
     );
   }
+
+  onPlay = () => {
+    const { player } = this;
+    const playerCurrentAudio = player.getAudio();
+    const playerAudioOptions = player.getAvailableAudio();
+
+    console.log(
+      'onPlay playerCurrentAudio:',
+      playerCurrentAudio,
+      '\nonPlay playerAudioOptions',
+      playerAudioOptions,
+    );
+  };
+
+  onSourceLoaded = () => {
+    const { player } = this;
+    const playerCurrentAudio = player.getAudio();
+    const playerAudioOptions = player.getAvailableAudio();
+
+    console.log(
+      'onSourceLoadedPlay playerCurrentAudio:',
+      playerCurrentAudio,
+      '\nonSourceLoaded playerAudioOptions',
+      playerAudioOptions,
+    );
+  };
 
   destroyPlayer() {
     if (this.player !== null) {

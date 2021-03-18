@@ -13,7 +13,7 @@ import BitmovinPlayer from '../../components/BitmovinPlayer';
 
 export default function FeaturePage() {
   const manifest =
-    'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
+    'https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
   return (
     <div>
       <Helmet>
