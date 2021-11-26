@@ -1,9 +1,19 @@
 import React from 'react';
-import { Player as Bitmovin, LogLevel, PlayerEvent } from 'bitmovin-player';
+import { LogLevel } from 'bitmovin-player';
+import {
+  Player as Bitmovin,
+  PlayerEvent,
+} from 'bitmovin-player/modules/bitmovinplayer-core';
 import BitmovinEngineModule from 'bitmovin-player/modules/bitmovinplayer-engine-bitmovin';
+import BitmovinEngineNative from 'bitmovin-player/modules/bitmovinplayer-engine-native';
+import RemoteControl from 'bitmovin-player/modules/bitmovinplayer-remotecontrol';
 import MSERendererModule from 'bitmovin-player/modules/bitmovinplayer-mserenderer';
 import HLSModule from 'bitmovin-player/modules/bitmovinplayer-hls';
 import ContainerMP4Module from 'bitmovin-player/modules/bitmovinplayer-container-mp4';
+import BitmovinSubtitles from 'bitmovin-player/modules/bitmovinplayer-subtitles';
+import BitmovinSubtitlesCEA608 from 'bitmovin-player/modules/bitmovinplayer-subtitles-cea608';
+import BitmovinSubtitlesNative from 'bitmovin-player/modules/bitmovinplayer-subtitles-native';
+import BitmovinSubtitlesWebVTT from 'bitmovin-player/modules/bitmovinplayer-subtitles-vtt';
 import DASHModule from 'bitmovin-player/modules/bitmovinplayer-dash';
 import XMLModule from 'bitmovin-player/modules/bitmovinplayer-xml';
 import ABRModule from 'bitmovin-player/modules/bitmovinplayer-abr';
@@ -11,6 +21,7 @@ import TSContainerModule from 'bitmovin-player/modules/bitmovinplayer-container-
 import PathModule from 'bitmovin-player/modules/bitmovinplayer-patch';
 import StyleModule from 'bitmovin-player/modules/bitmovinplayer-style';
 import Analytics from 'bitmovin-player/modules/bitmovinplayer-analytics';
+import ServiceWorkerClient from 'bitmovin-player/modules/bitmovinplayer-serviceworker-client';
 import { UIFactory } from 'bitmovin-player/bitmovinplayer-ui';
 import 'bitmovin-player/bitmovinplayer-ui.css';
 
@@ -21,8 +32,20 @@ class BitmovinPlayer extends React.Component {
 
   videoContainer = React.createRef();
 
+  heartbeatInterval = 0;
+
   getVideoContainer() {
     return this.videoContainer.current;
+  }
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      // eslint-disable-next-line react/no-unused-state
+      playbackProgress: 0,
+      // eslint-disable-next-line react/prop-types,react/no-unused-state
+      player: props.activePlayer,
+    };
   }
 
   // base64DecodeUint8Array(input) {
@@ -56,15 +79,28 @@ class BitmovinPlayer extends React.Component {
       events: {
         [PlayerEvent.Play]: this.onPlay,
         [PlayerEvent.SourceLoaded]: this.onSourceLoaded,
+        [PlayerEvent.CastStart]: this.CastStart,
+        [PlayerEvent.CastStarted]: this.CastStarted,
       },
       remotecontrol: {
         type: 'googlecast',
-        receiverApplicationId: '2D21C8BE',
+        messageNamespace: 'urn:x-cast:com.formula1.player.caf',
+        receiverApplicationId: '24AC46BD',
         receiverVersion: 'v3',
       },
     };
 
     this.setupPlayer();
+  }
+
+  componentDidUpdate(prevProps) {
+    // eslint-disable-next-line react/prop-types
+    const { manifest, activePlayer } = this.props;
+
+    // eslint-disable-next-line react/prop-types
+    if (prevProps.activePlayer !== activePlayer) {
+      this.load({ hls: manifest });
+    }
   }
 
   componentWillUnmount() {
@@ -73,6 +109,9 @@ class BitmovinPlayer extends React.Component {
 
   setupPlayer() {
     Bitmovin.addModule(BitmovinEngineModule);
+    Bitmovin.addModule(BitmovinEngineNative);
+    Bitmovin.addModule(RemoteControl);
+    Bitmovin.addModule(ServiceWorkerClient);
     Bitmovin.addModule(MSERendererModule);
     Bitmovin.addModule(ContainerMP4Module);
     Bitmovin.addModule(XMLModule);
@@ -80,69 +119,120 @@ class BitmovinPlayer extends React.Component {
     Bitmovin.addModule(HLSModule);
     Bitmovin.addModule(ABRModule);
     Bitmovin.addModule(TSContainerModule);
+    Bitmovin.addModule(BitmovinSubtitles);
+    Bitmovin.addModule(BitmovinSubtitlesNative);
+    Bitmovin.addModule(BitmovinSubtitlesCEA608);
+    Bitmovin.addModule(BitmovinSubtitlesWebVTT);
     Bitmovin.addModule(Analytics);
     Bitmovin.addModule(PathModule);
     Bitmovin.addModule(StyleModule);
 
     const playerContainer = this.getVideoContainer();
     // eslint-disable-next-line react/prop-types
-    const { manifest } = this.props;
     this.player = new Bitmovin(playerContainer, this.playerConfig);
     UIFactory.buildDefaultUI(this.player, {
       playbackSpeedSelectionEnabled: false,
       disableAutoHideWhenHovered: true,
     });
-    const { player } = this;
-    player.load({ hls: manifest }).then(
-      () => {
-        console.log('Successfully loaded source');
-        const playerCurrentAudio = player.getAudio();
-        const playerAudioOptions = player.getAvailableAudio();
+    // eslint-disable-next-line react/prop-types
+    const { manifest } = this.props;
 
+    // trigger player load
+    this.load({ hls: manifest });
+  }
+
+  enableHeartbeat = () => {
+    const { getCurrentTime } = this;
+    // eslint-disable-next-line react/prop-types
+    const { setPlayProgress } = this.props;
+    // clear previous interval
+    clearInterval(this.heartbeatInterval);
+    // next interval
+    this.heartbeatInterval = setInterval(() => {
+      const time = getCurrentTime();
+      setPlayProgress(time);
+    }, 1000);
+  };
+
+  load = sourceConfig => {
+    const { player } = this;
+    // eslint-disable-next-line react/prop-types
+    const { playProgress } = this.props;
+
+    // eslint-disable-next-line react/prop-types
+    const { activePlayer } = this.props;
+
+    // eslint-disable-next-line react/prop-types
+    const { manifest } = this.props;
+
+    if (!manifest.length) {
+      this.stop();
+      return;
+    }
+
+    console.log('playbackProgress', playProgress);
+    if (playProgress) {
+      // eslint-disable-next-line no-param-reassign
+      sourceConfig.options = {
+        startOffset: playProgress,
+      };
+    }
+
+    player.load(sourceConfig).then(
+      () => {
         console.log(
-          'playerCurrentAudio:',
-          playerCurrentAudio,
-          '\nplayerAudioOptions',
-          playerAudioOptions,
+          `${
+            activePlayer === 1 ? `${activePlayer}st` : `${activePlayer}nd`
+          } player loaded successfully`,
         );
+        this.enableHeartbeat();
       },
       () => {
         console.log('Error while loading source');
       },
     );
-  }
-
-  onPlay = () => {
-    const { player } = this;
-    const playerCurrentAudio = player.getAudio();
-    const playerAudioOptions = player.getAvailableAudio();
-
-    console.log(
-      'onPlay playerCurrentAudio:',
-      playerCurrentAudio,
-      '\nonPlay playerAudioOptions',
-      playerAudioOptions,
-    );
   };
 
-  onSourceLoaded = () => {
-    const { player } = this;
-    const playerCurrentAudio = player.getAudio();
-    const playerAudioOptions = player.getAvailableAudio();
+  isReady = () => !!this.getPlayerVersion();
 
-    console.log(
-      'onSourceLoadedPlay playerCurrentAudio:',
-      playerCurrentAudio,
-      '\nonSourceLoaded playerAudioOptions',
-      playerAudioOptions,
-    );
+  getCurrentTime = () => (this.isReady() && this.player.getCurrentTime()) || 0;
+
+  getPlayerVersion = () => this.player && this.player.version;
+
+  stop = cb => {
+    // eslint-disable-next-line no-unused-expressions
+    this.isReady() &&
+      this.player &&
+      this.player.unload &&
+      this.player
+        .unload()
+        .then(() => {
+          if (cb) {
+            cb();
+          }
+        })
+        .catch(this.onError);
   };
+
+  onPlay = () => {};
+
+  onSourceLoaded = () => {};
 
   destroyPlayer() {
     if (this.player !== null) {
       this.player.destroy();
     }
   }
+
+  CastStart = () => {
+    const { player } = this.state;
+    console.log('CastStart Player', player);
+  };
+
+  CastStarted = () => {
+    const { player } = this.state;
+    console.log('CastStarted Player', player);
+  };
 
   render() {
     return <div id="player" ref={this.videoContainer} />;

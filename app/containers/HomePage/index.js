@@ -4,7 +4,7 @@
  * This is the first thing users see of our App, at the '/' route
  */
 
-import React, { useEffect, memo } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import { Helmet } from 'react-helmet';
 import { FormattedMessage } from 'react-intl';
@@ -33,6 +33,7 @@ import { makeSelectUsername } from './selectors';
 import reducer from './reducer';
 import saga from './saga';
 import BitmovinPlayer from '../../components/BitmovinPlayer';
+import Button from '../../components/Button';
 
 const key = 'home';
 
@@ -47,10 +48,26 @@ export function HomePage({
   useInjectReducer({ key, reducer });
   useInjectSaga({ key, saga });
 
+  const [player, setPlayer] = useState(1);
+  const [playProgress, setPlayProgress] = useState(0);
+
   useEffect(() => {
     // When initial state username is not null, submit the form to load repos
     if (username && username.trim().length > 0) onSubmitForm();
   }, []);
+
+  useEffect(() => {
+    // When initial state username is not null, submit the form to load repos
+    console.log('component reload');
+  }, [player]);
+
+  const changePlayer = () => {
+    let nextPlayer = 2;
+    if (player === 2) {
+      nextPlayer = 1;
+    }
+    setPlayer(nextPlayer);
+  };
 
   const reposListProps = {
     loading,
@@ -101,7 +118,23 @@ export function HomePage({
           <ReposList {...reposListProps} />
         </Section>
         <Section>
-          <BitmovinPlayer manifest={manifest} />
+          <H2>Currently Active: {player}</H2>
+          <div className="player-selection">
+            <Button onClick={changePlayer}>Switch Player</Button>
+          </div>
+          <BitmovinPlayer
+            manifest={player === 1 ? manifest : ''}
+            activePlayer={player}
+            playProgress={playProgress}
+            setPlayProgress={setPlayProgress}
+          />
+          <br />
+          <BitmovinPlayer
+            manifest={player === 2 ? manifest : ''}
+            activePlayer={player}
+            playProgress={playProgress}
+            setPlayProgress={setPlayProgress}
+          />
         </Section>
       </div>
     </article>
