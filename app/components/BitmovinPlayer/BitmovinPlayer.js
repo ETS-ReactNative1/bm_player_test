@@ -44,7 +44,7 @@ class BitmovinPlayer extends React.Component {
       // eslint-disable-next-line react/no-unused-state
       playbackProgress: 0,
       // eslint-disable-next-line react/prop-types,react/no-unused-state
-      player: props.activePlayer,
+      player: props.player,
     };
   }
 
@@ -170,7 +170,6 @@ class BitmovinPlayer extends React.Component {
       return;
     }
 
-    console.log('playbackProgress', playProgress);
     if (playProgress) {
       // eslint-disable-next-line no-param-reassign
       sourceConfig.options = {
@@ -200,6 +199,7 @@ class BitmovinPlayer extends React.Component {
   getPlayerVersion = () => this.player && this.player.version;
 
   stop = cb => {
+    clearInterval(this.heartbeatInterval);
     // eslint-disable-next-line no-unused-expressions
     this.isReady() &&
       this.player &&
@@ -225,12 +225,14 @@ class BitmovinPlayer extends React.Component {
   }
 
   CastStart = () => {
-    const { player } = this.state;
+    // eslint-disable-next-line react/prop-types
+    const { player } = this.props;
     console.log('CastStart Player', player);
   };
 
   CastStarted = () => {
-    const { player } = this.state;
+    // eslint-disable-next-line react/prop-types
+    const { player } = this.props;
     console.log('CastStarted Player', player);
   };
 

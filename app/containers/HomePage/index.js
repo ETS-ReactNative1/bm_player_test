@@ -61,6 +61,10 @@ export function HomePage({
     console.log('component reload');
   }, [player]);
 
+  const updatePlayProgress = time => {
+    setPlayProgress(time);
+  };
+
   const changePlayer = () => {
     let nextPlayer = 2;
     if (player === 2) {
@@ -124,16 +128,18 @@ export function HomePage({
           </div>
           <BitmovinPlayer
             manifest={player === 1 ? manifest : ''}
+            player={1}
             activePlayer={player}
             playProgress={playProgress}
-            setPlayProgress={setPlayProgress}
+            setPlayProgress={updatePlayProgress}
           />
           <br />
           <BitmovinPlayer
             manifest={player === 2 ? manifest : ''}
+            player={2}
             activePlayer={player}
             playProgress={playProgress}
-            setPlayProgress={setPlayProgress}
+            setPlayProgress={updatePlayProgress}
           />
         </Section>
       </div>
