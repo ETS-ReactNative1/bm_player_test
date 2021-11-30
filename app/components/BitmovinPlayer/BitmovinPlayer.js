@@ -214,7 +214,11 @@ class BitmovinPlayer extends React.Component {
         .catch(this.onError);
   };
 
-  onPlay = () => {};
+  onPlay = () => {
+    // eslint-disable-next-line react/prop-types
+    const { player } = this.props;
+    console.log(`${player === 1 ? `${player}st` : `${player}nd`} playing`);
+  };
 
   onSourceLoaded = () => {};
 
